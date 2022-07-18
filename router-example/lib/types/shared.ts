@@ -1,4 +1,4 @@
-interface StandardSuccessResponse<T extends {}> {
+export interface StandardSuccessResponse<T extends {}> {
   success: true;
   data: T;
 }
@@ -11,9 +11,25 @@ export interface StandardErrorResponse {
   };
 }
 
-type StandardResponse<T = {}> =
+export type StandardResponse<T = {}> =
   | StandardSuccessResponse<T>
   | StandardErrorResponse;
+
+type UnwrapData<Res> = Res extends StandardResponse<infer Data> ? Data : never;
+
+const res: StandardResponse<{ name: string }> = {
+  // success: true,
+  // data: {
+  //   name: "Bob",
+  // },
+  success: false,
+  error: {
+    message: "some error msg",
+    status: 400,
+  },
+};
+
+type T = UnwrapData<typeof res>;
 
 // status codes
 export type StatusCodes = NonErrorStatusCodes | ErrorStatusCodes;

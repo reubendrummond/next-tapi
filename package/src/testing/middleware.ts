@@ -1,5 +1,4 @@
 import { RouterMiddleware } from "../types/middleware";
-import { StandardResponse } from "../types/responses";
 import { RouterMethodHandler } from "../types/router";
 import { IsEmptyObject } from "../types/utils";
 
@@ -41,8 +40,7 @@ export const anotherMiddleware = returnMiddleware((req) => {
   return {};
 });
 
-const get: RouterMethodHandler<StandardResponse<{ user: {} }>> = (handler) =>
-  null;
+const get: RouterMethodHandler<{}> = (handler) => null;
 
 get(
   [authMiddleware, verifyBody, anotherMiddleware],

@@ -1,30 +1,21 @@
 import { RouterMiddleware, UnwrapMiddleware } from "./middleware";
-import { StandardResponse } from "./responses";
 import { Methods } from "./methods";
 import { MethodHandler } from "./handler";
 
-// export interface IRouter<T extends StandardResponse> {
-//   get: RouterMethodHandler<T>;
-//   post: RouterMethodHandler<T>;
-//   delete: RouterMethodHandler<T>;
-//   put: RouterMethodHandler<T>;
-//   patch: RouterMethodHandler<T>;
-// }
-
 export type RouterMethodHandler<
-  R extends StandardResponse<object> = StandardResponse<{
+  R extends {} = {
     [key: PropertyKey]: never;
-  }>
+  }
 > = <Ms extends RouterMiddleware<any>[]>(
   middleware: Ms,
   handler: MethodHandler<UnwrapMiddleware<Ms>, R>
 ) => void;
 
-export interface RouteHandlerObject<R extends StandardResponse> {
+export interface RouteHandlerObject<R extends {}> {
   middleware: RouterMiddleware<any>[];
   handler: MethodHandler<any, R> | null;
 }
 
-export type RouterHandlers<T extends StandardResponse> = {
+export type RouterHandlers<T> = {
   [key in Methods]: RouteHandlerObject<T>;
 };

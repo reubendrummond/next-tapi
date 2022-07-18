@@ -10,9 +10,10 @@
   },
   "dependencies": {
     "next": "12.2.2",
+    "next-router": "workspace:*",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "next-router": "workspace:*"
+    "zod": "^3.17.5"
   },
   "devDependencies": {
     "@types/react": "^18.0.15"

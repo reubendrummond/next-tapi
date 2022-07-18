@@ -1,37 +1,19 @@
 import { NextApiHandler, NextApiResponse } from "next";
-import { authMiddleware } from "./testing/middleware";
+import { ApiError } from "./ApiError";
+import { defaultErrorHandler } from "./errorHandler";
+import { ErrorHandler } from "./types";
 import { MethodHandler } from "./types/handler";
 import { Methods } from "./types/methods";
 import { RouterMiddleware } from "./types/middleware";
-import { StandardErrorResponse, StandardResponse } from "./types/responses";
-import {
-  RouteHandlerObject,
-  RouterHandlers,
-  // RouterMethodHandler,
-} from "./types/router";
+import { RouteHandlerObject, RouterHandlers } from "./types/router";
 import { UnionToIntersection } from "./types/utils";
 
-// type DefaultStandardResponse = StandardResponse<{ [key: PropertyKey]: never }>;
-
-// import { IRouter } from "./types/router";
-
-// type RouterMethodHandler<
-//   R extends StandardResponse<object> = StandardResponse<{
-//     [key: string]: never;
-//     [key: number]: never;
-//     [key: symbol]: never;
-//   }>
-// > = <Ms extends RouterMiddleware<any, any>[]>(
-//   middleware: Ms,
-//   handler: MethodHandler<UnionToIntersection<ReturnType<Ms[number]>>, R>
-// ) => void;
-
 type RouterMethodReturn<
-  Res extends StandardResponse<object> = StandardResponse<{
+  Res extends {} = {
     [key: string]: never;
     [key: number]: never;
     [key: symbol]: never;
-  }>
+  }
 > = Res;
 
 type RouterMethodMiddleware = RouterMiddleware<any, any>[];
@@ -41,13 +23,9 @@ type RouterMethodHandler<
   Middleware extends RouterMethodMiddleware
 > = MethodHandler<UnionToIntersection<ReturnType<Middleware[number]>>, Res>;
 
-// type RouterMethodWithMiddleware = (
-//   middleware: RouterMiddleware<any, any>[],
-//   handler: NextApiHandler
-// ) => void;
-
 export class Router {
-  handlers: RouterHandlers<StandardResponse<{}>> = {
+  private errorHandler: ErrorHandler = defaultErrorHandler;
+  private handlers: RouterHandlers<{}> = {
     get: {
       handler: null,
       middleware: [],
@@ -83,56 +61,71 @@ export class Router {
   }
 
   public middleware = <Ms extends RouterMiddleware<any>[]>(middleware: Ms) => {
-    const ret = {
-      get: <Res extends StandardResponse>(
+    return {
+      get: <Res extends {} = { [_: PropertyKey]: never }>(
         handler: RouterMethodHandler<Res, Ms>
       ) => this._get(middleware, handler),
+      post: <Res extends {} = { [_: PropertyKey]: never }>(
+        handler: RouterMethodHandler<Res, Ms>
+      ) => this._post(middleware, handler),
+      delete: <Res extends {} = { [_: PropertyKey]: never }>(
+        handler: RouterMethodHandler<Res, Ms>
+      ) => this._delete(middleware, handler),
+      put: <Res extends {} = { [_: PropertyKey]: never }>(
+        handler: RouterMethodHandler<Res, Ms>
+      ) => this._put(middleware, handler),
+      patch: <Res extends {} = { [_: PropertyKey]: never }>(
+        handler: RouterMethodHandler<Res, Ms>
+      ) => this._patch(middleware, handler),
     };
-
-    return ret;
   };
 
-  // public get<
-  //   Res extends StandardResponse = DefaultStandardResponse,
-  //   Ms extends RouterMethodMiddleware = RouterMethodMiddleware
-  // >(middleware: Ms, handler: RouterMethodHandler<Res, RouterMethodMiddleware>) {
-  //   this.setMethodHandler("get", middleware, handler);
-  // }
-
-  public get = <Res extends StandardResponse>(handler: NextApiHandler<Res>) => {
+  public get = <Res extends {}>(handler: NextApiHandler<Res>) => {
     this.setMethodHandler("get", [], handler);
   };
+  public post = <Res extends {}>(handler: NextApiHandler<Res>) => {
+    this.setMethodHandler("post", [], handler);
+  };
+  public delete = <Res extends {}>(handler: NextApiHandler<Res>) => {
+    this.setMethodHandler("delete", [], handler);
+  };
+  public put = <Res extends {}>(handler: NextApiHandler<Res>) => {
+    this.setMethodHandler("put", [], handler);
+  };
+  public patch = <Res extends {}>(handler: NextApiHandler<Res>) => {
+    this.setMethodHandler("patch", [], handler);
+  };
 
-  private _get = <
-    Ms extends RouterMiddleware<any, any>[],
-    Res extends StandardResponse<{}>
-  >(
+  private _get = <Ms extends RouterMiddleware<any, any>[], Res extends {}>(
     middleware: Ms,
     handler: RouterMethodHandler<Res, Ms>
   ) => {
     this.setMethodHandler("get", middleware, handler);
   };
-
-  // public post = <Res>(middleware, handler): RouterMethodHandler<Res> => {
-  //   this.setMethodHandler("post", middleware, handler);
-  // };
-  // public delete: RouterMethodHandler = (middleware, handler) => {
-  //   this.setMethodHandler("delete", middleware, handler);
-  // };
-  // public put: RouterMethodHandler = (middleware, handler) => {
-  //   this.setMethodHandler("put", middleware, handler);
-  // };
-  //   public patch = <R, Ms extends RouterMiddleware<any, any>[]>(middleware: Ms, handler: MethodHandler<UnionToIntersection<ReturnType<Ms[number]>>, R>) => {
-  //     this.setMethodHandler("patch", middleware, handler);
-  //   };
-  // public patch = <R>() => {
-  //   <Ms extends RouterMiddleware<any, any>[]>(
-  //     middleware: Ms,
-  //     handler: MethodHandler<UnionToIntersection<ReturnType<Ms[number]>>, R>
-  //   ) => {
-  //     this.setMethodHandler("put", middleware, handler);
-  //   };
-  // };
+  private _post = <Ms extends RouterMiddleware<any, any>[], Res extends {}>(
+    middleware: Ms,
+    handler: RouterMethodHandler<Res, Ms>
+  ) => {
+    this.setMethodHandler("post", middleware, handler);
+  };
+  private _delete = <Ms extends RouterMiddleware<any, any>[], Res extends {}>(
+    middleware: Ms,
+    handler: RouterMethodHandler<Res, Ms>
+  ) => {
+    this.setMethodHandler("delete", middleware, handler);
+  };
+  private _put = <Ms extends RouterMiddleware<any, any>[], Res extends {}>(
+    middleware: Ms,
+    handler: RouterMethodHandler<Res, Ms>
+  ) => {
+    this.setMethodHandler("put", middleware, handler);
+  };
+  private _patch = <Ms extends RouterMiddleware<any, any>[], Res extends {}>(
+    middleware: Ms,
+    handler: RouterMethodHandler<Res, Ms>
+  ) => {
+    this.setMethodHandler("patch", middleware, handler);
+  };
 
   export(): NextApiHandler {
     return async (req, res) => {
@@ -163,7 +156,7 @@ export class Router {
         }
 
         if (!handler || !handler.handler)
-          throw new Error(`${req.method} method not supported`);
+          throw new ApiError(405, `${req.method} method not allowed`);
 
         const fields: { [key: PropertyKey]: any } = {};
         for (const middleware of handler.middleware) {
@@ -180,41 +173,4 @@ export class Router {
       }
     };
   }
-
-  private errorHandler(res: NextApiResponse<StandardErrorResponse>, err: any) {
-    // if (err instanceof ApiError) {
-    // handler ApiErrors
-    // }
-
-    if (err instanceof Error) {
-      // do some error checking
-    }
-    return res.status(400).json({
-      success: false,
-      error: {
-        message: "npp",
-        code: 123,
-      },
-    });
-  }
 }
-
-// const errorHandler = (
-//   res: NextApiResponse<StandardErrorResponse>,
-//   err: any
-// ) => {};
-
-const r = new Router();
-
-r.middleware([authMiddleware]).get<StandardResponse<{ name: string }>>(
-  (req, res, fields) => {
-    return res.status(200).json({
-      success: true,
-      data: {
-        name: "name here",
-      },
-    });
-  }
-);
-
-r.middleware([authMiddleware]).get((req, res, fields) => {});

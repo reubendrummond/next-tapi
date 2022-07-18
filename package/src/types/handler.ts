@@ -1,7 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { StandardResponse } from "./responses";
 
-export type MethodHandler<T, R extends StandardResponse> = (
+export type MethodHandler<T, R extends {}> = (
   req: NextApiRequest,
   res: NextApiResponse<R>,
   fields: T
