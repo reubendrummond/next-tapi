@@ -72,7 +72,7 @@ export type POSTTypeMap = {
   >;
 };
 
-const wrapper = {
+export const fetcher = {
   get: async <Endpoint extends keyof GETTypeMap>(
     endpoint: Endpoint,
     options?: {
@@ -99,13 +99,13 @@ const wrapper = {
   },
 };
 
-const getRes = wrapper.get("/api/users/id/123/friends");
-const getResWithQuery = wrapper.get("/api/users/id/123/friends", {
+const getRes = fetcher.get("/api/users/id/123/friends");
+const getResWithQuery = fetcher.get("/api/users/id/123/friends", {
   query: {
     all: true,
   },
 });
-const postRes = wrapper.post("/api/users", {
+const postRes = fetcher.post("/api/users", {
   body: {
     id: 123,
     name: "my name",

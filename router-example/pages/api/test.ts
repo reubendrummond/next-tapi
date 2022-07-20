@@ -6,43 +6,52 @@ import { testSchema } from "lib/schemas/posts";
 
 const router = new Router();
 
-router
+export const get = router
   .middleware([authMiddleware])
-  .get<StandardResponse<{ session: {} }>>((req, res, { session }) => {
+  // .get<StandardResponse<{ session: {} }>>((req, { session }) => {
+  .get((req, { session }) => {
     if (Math.random() < 0.5)
       throw new ApiError(404, "This was not found buddy");
 
-    return res.status(200).json({
+    return {
       success: true,
       data: {
         session,
       },
-    });
+    };
   });
+
+const post = router.post<StandardResponse<{ smthn: string }>>((req) => {
+  return {
+    success: true,
+    data: {
+      smthn: "a string",
+    },
+  };
+});
 
 router
   .middleware([authMiddleware, validateBody(testSchema)])
-  .post<StandardResponse<{ session: {}; validatedBody: {} }>>(
-    (req, res, { session, validatedBody }) => {
-      res.status(200).json({
-        success: true,
-        data: {
-          session,
-          validatedBody,
-        },
-      });
-    }
-  );
+  .post((req, { session, validatedBody }) => {
+    return {
+      success: true,
+      data: {
+        session,
+        validatedBody,
+      },
+    };
+  });
 
 router
   .middleware([authMiddleware])
-  .delete<StandardResponse<{ name: string }>>((req, res, fields) => {
-    res.status(200).json({
+  .delete<StandardResponse<{ name: string }>>((req, { session }) => {
+    return {
       success: true,
       data: {
         name: "lksjad",
+        session,
       },
-    });
+    };
   });
 
 export default router.export();

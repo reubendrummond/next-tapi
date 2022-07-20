@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "outDir": "dist"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "typings": "dist/index.d.ts",
+  "files": ["README.md", "dist", "src"],
+  "include": ["src", "tsup.config.ts", "server", "client"],
+  "exclude": ["**/node_modules", "**/.*/"]
+}
