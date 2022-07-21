@@ -1,4 +1,4 @@
-import { ApiError, createMiddleware } from "next-router";
+import { ApiError, createMiddleware } from "next-tapi";
 export const authMiddleware = createMiddleware((req) => {
   // handle unauthenticated
   // throw new ApiError(403, "not alloed :(");

@@ -1,4 +1,3 @@
-import assert from "assert";
 import { NextApiHandler } from "next";
 import { ApiError } from "./ApiError";
 import { defaultErrorHandler } from "./errorHandler";

@@ -28,5 +28,3 @@ export const getMid = r
       something: "yes",
     };
   });
-
-r;

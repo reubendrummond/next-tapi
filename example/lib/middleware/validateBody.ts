@@ -1,4 +1,4 @@
-import { ApiError, createMiddleware } from "next-router";
+import { ApiError, createMiddleware } from "next-tapi";
 import zod from "zod";
 
 export const validateBody = <T extends zod.ZodObject<any>>(schema: T) => {
