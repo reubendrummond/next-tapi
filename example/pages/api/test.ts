@@ -1,4 +1,4 @@
-import { Router, ApiError } from "next-router";
+import { Router, ApiError } from "next-tapi";
 import { authMiddleware } from "lib/middleware/auth";
 import { StandardResponse } from "lib/types/shared";
 import { validateBody } from "lib/middleware/validateBody";

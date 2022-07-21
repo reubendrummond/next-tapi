@@ -1,8 +1,8 @@
 {
-  "name": "next-router",
+  "name": "next-tapi",
   "private": true,
   "version": "1.0.0",
-  "description": "A nicer NextJS API.",
+  "description": "NextJS type-safe api wrapper.",
   "files": [
     "dist",
     "index.js",

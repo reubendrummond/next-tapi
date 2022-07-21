@@ -1,3 +1,4 @@
+import assert from "assert";
 import { NextApiHandler } from "next";
 import { ApiError } from "./ApiError";
 import { defaultErrorHandler } from "./errorHandler";
@@ -135,7 +136,7 @@ class MiddlewareRouter<Ms extends RouterMiddleware<any, any>[]> {
         middleware: this.middleware,
         handler,
       });
-      return handler;
+      return;
     };
 
   public get = this.createRoute("get");
@@ -144,3 +145,13 @@ class MiddlewareRouter<Ms extends RouterMiddleware<any, any>[]> {
   public put = this.createRoute("put");
   public patch = this.createRoute("patch");
 }
+
+const r = new Router();
+
+r.get((req) => {
+  return {
+    str: "hee haw",
+  };
+});
+
+r;
