@@ -6,31 +6,21 @@ import { testSchema } from "lib/schemas/posts";
 
 const router = new Router();
 
-export const get = router
-  .middleware([authMiddleware])
+export const GET = router
   // .get<StandardResponse<{ session: {} }>>((req, { session }) => {
-  .get((req, { session }) => {
+  .get((req) => {
     if (Math.random() < 0.5)
       throw new ApiError(404, "This was not found buddy");
 
     return {
       success: true,
       data: {
-        session,
+        thisIsInfered: "so is this type",
       },
     };
   });
 
-const post = router.post<StandardResponse<{ smthn: string }>>((req) => {
-  return {
-    success: true,
-    data: {
-      smthn: "a string",
-    },
-  };
-});
-
-router
+export const POST = router
   .middleware([authMiddleware, validateBody(testSchema)])
   .post((req, { session, validatedBody }) => {
     return {
@@ -42,7 +32,7 @@ router
     };
   });
 
-router
+export const DELETE = router
   .middleware([authMiddleware])
   .delete<StandardResponse<{ name: string }>>((req, { session }) => {
     return {
