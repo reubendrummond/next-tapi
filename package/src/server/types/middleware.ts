@@ -1,4 +1,4 @@
-import { NextApiRequest } from "next";
+import { NextApiRequest, NextApiResponse } from "next";
 import { UnionToIntersection, IsEmptyObject } from "./utils";
 
 export type UnwrapMiddleware<Ms extends RouterMiddleware<any>[]> =
@@ -7,4 +7,4 @@ export type UnwrapMiddleware<Ms extends RouterMiddleware<any>[]> =
 export type RouterMiddleware<
   T extends { [key: PropertyKey]: any },
   R = IsEmptyObject<T> extends true ? { [key: PropertyKey]: never } : T
-> = (req: NextApiRequest) => R | Promise<R>;
+> = (req: NextApiRequest, res: NextApiResponse) => R | Promise<R>;

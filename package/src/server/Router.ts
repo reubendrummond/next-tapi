@@ -103,13 +103,15 @@ export class Router {
 
         const fields: { [key: PropertyKey]: any } = {};
         for (const middleware of routeHandler.middleware) {
-          const middlewareFields = await middleware(req);
+          const middlewareFields = await middleware(req, res);
 
+          if (res.writableEnded) break;
           if (typeof middlewareFields !== "object") continue;
           Object.entries(middlewareFields).forEach(([key, value]) => {
             fields[key] = value;
           });
         }
+        if (res.writableEnded) return;
         const resp = await routeHandler.handler(req, fields);
         return res.status(200).json(resp);
       } catch (err) {
@@ -144,13 +146,3 @@ class MiddlewareRouter<Ms extends RouterMiddleware<any, any>[]> {
   public put = this.createRoute("put");
   public patch = this.createRoute("patch");
 }
-
-const r = new Router();
-
-r.get((req) => {
-  return {
-    str: "hee haw",
-  };
-});
-
-r;

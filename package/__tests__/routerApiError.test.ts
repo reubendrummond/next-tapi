@@ -1,29 +1,28 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { createMocks, RequestMethod } from "node-mocks-http";
-import { Router } from "../index";
+import { createMiddleware, Router } from "../index";
 import { ApiError } from "../index";
 
 const unauthorisedMessage = "You are not authorised!";
-
 const r = new Router();
 
-r.get((res) => {
+r.get((req) => {
   throw new ApiError(403, unauthorisedMessage);
   return {};
 });
-r.post((res) => {
+r.post((req) => {
   throw new ApiError(403, unauthorisedMessage);
   return {};
 });
-r.delete((res) => {
+r.delete((req) => {
   throw new ApiError(403, unauthorisedMessage);
   return {};
 });
-r.put((res) => {
+r.put((req) => {
   throw new ApiError(403, unauthorisedMessage);
   return {};
 });
-r.patch((res) => {
+r.patch((req) => {
   throw new ApiError(403, unauthorisedMessage);
   return {};
 });

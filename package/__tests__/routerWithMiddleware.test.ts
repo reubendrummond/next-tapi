@@ -4,7 +4,7 @@ import {
   authMiddleware,
   errorMiddleware,
 } from "../src/server/examples/middleware";
-import zod from "zod";
+import * as zod from "zod";
 import { ApiError } from "../index";
 import { createMocks, RequestMethod } from "node-mocks-http";
 import { NextApiRequest, NextApiResponse } from "next";
