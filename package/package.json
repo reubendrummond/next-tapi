@@ -14,7 +14,8 @@
   "scripts": {
     "build": "rm -rf dist/* && rollup --c",
     "watch": "rollup --c -w",
-    "test": "jest"
+    "test": "jest",
+    "release": "pnpm run build && pnpm run test && pnpm run publish"
   },
   "keywords": [
     "next js",
