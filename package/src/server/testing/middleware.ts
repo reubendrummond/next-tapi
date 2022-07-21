@@ -1,5 +1,4 @@
 import { RouterMiddleware } from "../types/middleware";
-import { RouterMethodHandler } from "../types/router";
 import { IsEmptyObject } from "../types/utils";
 
 const returnMiddleware = <T extends {}>(
@@ -39,12 +38,3 @@ export const anotherMiddleware = returnMiddleware((req) => {
 
   return {};
 });
-
-const get: RouterMethodHandler<{}> = (handler) => null;
-
-get(
-  [authMiddleware, verifyBody, anotherMiddleware],
-  (req, res, { session, verifiedBody }) => {
-    res.status(200).json({ success: true, data: { user: session.user } });
-  }
-);

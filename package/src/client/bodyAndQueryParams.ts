@@ -1,5 +1,3 @@
-import { useEffect, useState } from "react";
-
 // these inferred from server
 interface User {
   id: number;

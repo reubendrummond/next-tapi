@@ -67,7 +67,9 @@ interface FetchHookLoading {
 }
 type FetchHook<Res> = FetchHookSuccess<Res> | FetchHookFail | FetchHookLoading;
 
-const useFetch = <Endpoint extends keyof GETTypeMap>(endpoint: Endpoint) => {
+export const useFetch = <Endpoint extends keyof GETTypeMap>(
+  endpoint: Endpoint
+) => {
   const [data, setData] = useState<FetchHook<GETTypeMap[Endpoint]>>({
     isSuccess: false,
     isError: false,
