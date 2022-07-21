@@ -12,7 +12,7 @@ import {
 } from "./types/router";
 
 export class Router {
-  private errorHandler: ErrorHandler = defaultErrorHandler;
+  private errorHandler: ErrorHandler;
 
   private routeHandlers: {
     [method in Methods]: RouteHandlerObject;
@@ -39,7 +39,9 @@ export class Router {
     },
   };
 
-  constructor() {}
+  constructor(options?: { errorHandler: ErrorHandler }) {
+    this.errorHandler = options?.errorHandler || defaultErrorHandler;
+  }
 
   private setHandler: SetHandlerObject = (
     method: Methods,

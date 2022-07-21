@@ -61,5 +61,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/reubendrummond/next-router"
+  },
+  "dependencies": {
+    "next-tapi": "link:"
   }
 }
