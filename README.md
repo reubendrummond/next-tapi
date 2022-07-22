@@ -12,9 +12,9 @@ Next tAPI (NextJS type-safe API) is an intuitive and easy to use abstraction for
 ## Installation
 
 ```sh
-npm install zod       # npm
-yarn add zod          # yarn
-pnpm add zod          # pnpm
+npm install next-tapi       # npm
+yarn add next-tapi          # yarn
+pnpm add next-tapi          # pnpm
 ```
 
 ## Getting Started
