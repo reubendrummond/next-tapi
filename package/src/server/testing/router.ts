@@ -28,3 +28,25 @@ export const getMid = r
       something: "yes",
     };
   });
+
+r.get((req) => {
+  return {};
+});
+
+const rooter = new Router().globalMiddleware([authMiddleware]);
+
+rooter
+  .middleware([
+    createMiddleware(() => {
+      return { newField: "stringval" };
+    }),
+  ])
+  .get((req, { session, newField }) => {
+    return {};
+  });
+
+rooter.get((req, { session }) => {
+  return {
+    session,
+  };
+});

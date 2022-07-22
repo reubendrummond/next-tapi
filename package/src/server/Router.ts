@@ -13,6 +13,7 @@ import {
 
 export class Router {
   private errorHandler: ErrorHandler;
+  private gloablMiddleware: RouterMiddleware<any, any>[] = [];
 
   private routeHandlers: {
     [method in Methods]: RouteHandlerObject;
@@ -56,9 +57,43 @@ export class Router {
     return new MiddlewareRouter<Ms>(this.setHandler, middleware);
   };
 
+  private combineMiddleware =
+    <GlobalMs extends RouterMiddleware<any, any>[]>() =>
+    <Ms extends RouterMiddleware<any, any>[]>(middleware: Ms) => {
+      return new MiddlewareRouter<GlobalMs | Ms>(this.setHandler, middleware);
+    };
+
+  public globalMiddleware = <Ms extends RouterMiddleware<any, any>[]>(
+    middleware: Ms
+  ) => {
+    this.gloablMiddleware = middleware;
+
+    return {
+      get: this.createRouteWithMiddleware<Ms>("get"),
+      post: this.createRouteWithMiddleware<Ms>("post"),
+      delete: this.createRouteWithMiddleware<Ms>("delete"),
+      put: this.createRouteWithMiddleware<Ms>("put"),
+      patch: this.createRouteWithMiddleware<Ms>("patch"),
+      middleware: this.combineMiddleware<Ms>(),
+      export: () => this.export(),
+    };
+  };
+
   private createRoute =
     (method: Methods) =>
-    <Res extends Record<string, any>>(handler: HandlerWrapper<Res>) => {
+    <Res extends Record<PropertyKey, any>>(handler: HandlerWrapper<Res>) => {
+      this.setHandler(method, {
+        handler,
+        middleware: [],
+      });
+      return handler;
+    };
+
+  private createRouteWithMiddleware =
+    <Ms extends RouterMiddleware<any, any>[]>(method: Methods) =>
+    <Res extends Record<PropertyKey, any>>(
+      handler: HandlerWrapperWithMiddleware<Ms, Res>
+    ) => {
       this.setHandler(method, {
         handler,
         middleware: [],
@@ -104,7 +139,10 @@ export class Router {
           throw new ApiError(405, `${req.method} method not allowed`);
 
         const fields: { [key: PropertyKey]: any } = {};
-        for (const middleware of routeHandler.middleware) {
+        for (const middleware of [
+          ...routeHandler.middleware,
+          ...this.gloablMiddleware,
+        ]) {
           const middlewareFields = await middleware(req, res);
 
           if (res.writableEnded) break;
@@ -125,18 +163,20 @@ export class Router {
 
 class MiddlewareRouter<Ms extends RouterMiddleware<any, any>[]> {
   private setHandler: SetHandlerObject;
-  private middleware: Ms;
+  private _middleware: Ms;
 
   constructor(setHandler: SetHandlerObject, middleware: Ms) {
     this.setHandler = setHandler;
-    this.middleware = middleware;
+    this._middleware = middleware;
   }
 
   private createRoute =
     (method: Methods) =>
-    <Res>(handler: HandlerWrapperWithMiddleware<Ms, Res>) => {
+    <Res extends Record<PropertyKey, any>>(
+      handler: HandlerWrapperWithMiddleware<Ms, Res>
+    ) => {
       this.setHandler(method, {
-        middleware: this.middleware,
+        middleware: this._middleware,
         handler,
       });
       return;
@@ -147,4 +187,10 @@ class MiddlewareRouter<Ms extends RouterMiddleware<any, any>[]> {
   public delete = this.createRoute("delete");
   public put = this.createRoute("put");
   public patch = this.createRoute("patch");
+
+  // public middleware = <PrivMs extends RouterMiddleware<any, any>[]>(
+  //   middleware: PrivMs
+  // ) => {
+  //   return new MiddlewareRouter<Ms | PrivMs>(this.setHandler, middleware);
+  // };
 }

@@ -3,8 +3,9 @@ import { authMiddleware } from "lib/middleware/auth";
 import { StandardResponse } from "lib/types/shared";
 import { validateBody } from "lib/middleware/validateBody";
 import { testSchema } from "lib/schemas/posts";
+import { mainRouter } from "server/routers";
 
-const router = new Router();
+const router = mainRouter();
 
 export const GET = router
   // .get<StandardResponse<{ session: {} }>>((req, { session }) => {
