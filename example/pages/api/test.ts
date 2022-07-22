@@ -1,7 +1,7 @@
-import { Router, ApiError } from "next-tapi";
-import { authMiddleware } from "lib/middleware/auth";
+import { ApiError } from "next-tapi";
+import { authMiddleware } from "server/middleware/auth";
 import { StandardResponse } from "lib/types/shared";
-import { validateBody } from "lib/middleware/validateBody";
+import { validateBody } from "server/middleware/validateBody";
 import { testSchema } from "lib/schemas/posts";
 import { mainRouter } from "server/routers";
 
@@ -23,15 +23,17 @@ export const GET = router
 
 export const POST = router
   .middleware([authMiddleware, validateBody(testSchema)])
-  .post((req, { session, validatedBody }) => {
-    return {
-      success: true,
-      data: {
-        session,
-        validatedBody,
-      },
-    };
-  });
+  .post<StandardResponse<{ session: any; validatedBody: any }>>(
+    (req, { session, validatedBody }) => {
+      return {
+        success: true,
+        data: {
+          session,
+          validatedBody,
+        },
+      };
+    }
+  );
 
 export const DELETE = router
   .middleware([authMiddleware])

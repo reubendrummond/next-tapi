@@ -1,34 +1,173 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Next tAPI
+
+Next tAPI (NextJS type-safe API) is an intuitive and easy to use abstraction for NextJS API routes.
+
+**Features**:
+
+- fully typed
+- Express-like
+- simple error handling
+- versatile and type-safe middleware
+
+## Installation
+
+```sh
+npm install zod       # npm
+yarn add zod          # yarn
+pnpm add zod          # pnpm
+```
 
 ## Getting Started
 
-First, run the development server:
+The router is similar to Express.
 
-```bash
-npm run dev
-# or
-yarn dev
+```ts
+// pages/api/some-route
+
+import { Router } from "next-tapi";
+const router = new Router();
+
+router.get((req) => { ... });
+router.post((req) => { ... });
+router.delete((req) => { ... });
+router.post((req) => { ... });
+router.patch((req) => { ... });
+
+export default router.export()
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Type declaration
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+Declare return types with generics.
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+```ts
+router.get<{ name: string }>((req) => {
+  return {
+    name: 123456789, // error
+  };
+});
+```
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+### Error handling
 
-## Learn More
+Errors thrown in an API handler will be caught and processed. A custom error handler can be easily added to handler [custom errors](#error-handler). Next tAPI provides its own `ApiError` which is handled with the default error handler.
 
-To learn more about Next.js, take a look at the following resources:
+```ts
+import { ApiError } from "next-tapi";
+router.get((req) => {
+  throw new ApiError(400, "Some error message");
+  return {};
+});
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Middleware
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+### `createMiddleware`
 
-## Deploy on Vercel
+Middleware should be created with the `createMiddleware` function.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```ts
+import { createMiddleware } from "next-tapi";
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+const authMiddleware = createMiddleware((req, res) => {
+  const session = await getSession(req, res);
+  return {
+    session,
+  };
+});
+```
+
+### Consume middleware
+
+Fields returned from middleware are accessible in the callback handler.
+
+```ts
+import { authmiddleware } from "path/to/middleware";
+
+router.middleware([authMiddleware]).get((req, fields) => {
+  fields.session; // type of session inferred from middleware
+  return {
+    // ...
+  };
+});
+```
+
+### Errors in middleware
+
+Errors thrown in middleware will be handled as normal.
+
+```ts
+import { createMiddleware } from "next-tapi";
+
+const authMiddleware = createMiddleware((req, res) => {
+  const session = await getSession(req, res); // error handled as normal
+  if (!session) throw new ApiError(403, "Forbidden");
+  return {
+    session,
+  };
+});
+```
+
+### Global middleware
+
+Middleware can be made run from all API routes using the globalMiddleware method.
+
+```ts
+import { Router } from "next-tapi";
+
+const router = new Router().globalMiddleware([authMiddleware]);
+
+router.get((req, { session }) => {
+  // ...
+});
+
+// middleware can still be used
+router
+  .middleware([validateRequestBody])
+  .post((req, { session, validatedBody }) => {
+    // ...
+  });
+
+export default router.export();
+```
+
+## Customisation
+
+### Error handler
+
+A custom error handler can easily be added to handle custom errors or to change the error response.
+
+```ts
+import { Router, ErrorHandler } from "next-tapi";
+
+type ErrorResponseShape = {}; // optionally define shape of error response
+const myCustomErrorHandler: ErrorHandler<ErrorResponseShape> = (res, err) => {
+  // handle error
+};
+
+const router = new Router({
+  errorHandler: myCustomErrorHandler,
+});
+```
+
+## Router types
+
+It may be convenient to define a few types of routers with different middleware.
+
+```ts
+import { authMiddleware, logRequest } from "path/to/middleware";
+import { myCustomErrorHandler } from "path/to/myCustomErrorHandler";
+import { Router } from "next-tapi";
+
+export const mainRouter = () => {
+  return new Router({
+    errorHandler: myCustomErrorHandler,
+  }).globalMiddleware([logRequest]);
+};
+
+export const authRouter = () => {
+  return new Router({
+    errorHandler: myCustomErrorHandler,
+  }).globalMiddleware([authMiddleware, logRequest]);
+};
+```

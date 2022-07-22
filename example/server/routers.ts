@@ -1,4 +1,4 @@
-import { authMiddleware } from "lib/middleware/auth";
+import { authMiddleware } from "server/middleware/auth";
 import { Router } from "next-tapi";
 
 export const mainRouter = () => {
