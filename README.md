@@ -54,6 +54,7 @@ Errors thrown in an API handler will be caught and processed. A custom error han
 
 ```ts
 import { ApiError } from "next-tapi";
+
 router.get((req) => {
   throw new ApiError(400, "Some error message");
   return {};
@@ -69,7 +70,7 @@ Middleware should be created with the `createMiddleware` function.
 ```ts
 import { createMiddleware } from "next-tapi";
 
-const authMiddleware = createMiddleware((req, res) => {
+const authMiddleware = createMiddleware(async (req, res) => {
   const session = await getSession(req, res);
   return {
     session,
@@ -99,7 +100,7 @@ Errors thrown in middleware will be handled as normal.
 ```ts
 import { createMiddleware } from "next-tapi";
 
-const authMiddleware = createMiddleware((req, res) => {
+const authMiddleware = createMiddleware(async (req, res) => {
   const session = await getSession(req, res); // error handled as normal
   if (!session) throw new ApiError(403, "Forbidden");
   return {
