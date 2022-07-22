@@ -65,6 +65,5 @@
   },
   "dependencies": {
     "next-tapi": "link:"
-  },
-  "readme": "../README.md"
+  }
 }
