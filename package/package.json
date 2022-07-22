@@ -1,6 +1,6 @@
 {
   "name": "next-tapi",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "NextJS type-safe api wrapper.",
   "files": [
     "dist",
