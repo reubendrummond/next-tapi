@@ -2,21 +2,21 @@ import { ApiError } from "../ApiError";
 import { createMiddleware } from "../createMiddleware";
 import zod from "zod";
 
-export const authMiddleware = createMiddleware((req) => {
-  return {
+export const authMiddleware = createMiddleware((req, res, next) => {
+  next({
     session: {
       user: {
         id: 1,
         username: "someusername",
       },
     },
-  };
+  });
 });
 
 export const validateBodyMiddleware = <T extends zod.ZodObject<any>>(
   schema: T
 ) => {
-  return createMiddleware((req) => {
+  return createMiddleware(({ req }) => {
     try {
       const validatedBody = schema.parse(req.body) as zod.infer<T>;
       return {

@@ -1,10 +1,21 @@
-import { RouterMiddleware } from "./types/middleware";
-import { IsEmptyObject } from "./types/utils";
+import { NextApiRequest, NextApiResponse } from "next";
+import {
+  MiddlewareNext,
+  MiddlewareNextResult,
+  RouterMiddleware,
+} from "./types/middleware";
+import { EmptyObject } from "./types/utils";
 
-export const createMiddleware = <T extends {}>(
-  middleware: RouterMiddleware<T>
-): RouterMiddleware<
-  IsEmptyObject<T> extends true ? Record<PropertyKey, never> : T
-> => {
+export const createMiddleware = <R>(
+  middleware: ({
+    req,
+    res,
+    next,
+  }: {
+    req: NextApiRequest;
+    res: NextApiResponse<EmptyObject>;
+    next: MiddlewareNext;
+  }) => MiddlewareNextResult<R>
+) => {
   return middleware;
 };

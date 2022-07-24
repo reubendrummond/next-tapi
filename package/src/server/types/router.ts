@@ -1,7 +1,7 @@
 import { RouterMiddleware, UnwrapMiddleware } from "./middleware";
 import { Methods } from "./methods";
 import { MethodHandler } from "./handler";
-import { NextApiRequest } from "next";
+import { NextApiRequest, NextApiResponse } from "next";
 import { UnionToIntersection } from "./utils";
 
 // export type RouterMethodHandler<
@@ -17,15 +17,16 @@ import { UnionToIntersection } from "./utils";
 //   [key in Methods]: RouteHandlerObject;
 // };
 
-export type HandlerWrapper<Res extends {}> = (
-  req: NextApiRequest
-) => Res | Promise<Res>;
+export type HandlerWrapper<Res extends {}> = (p: {
+  req: NextApiRequest;
+  res: NextApiResponse<Res>;
+}) => Res | Promise<Res>;
 
 export type HandlerWrapperWithMiddleware<
   Ms extends RouterMiddleware<any, any>[],
   Res extends {}
 > = (
-  req: NextApiRequest,
+  p: { req: NextApiRequest; res: NextApiResponse<Res> },
   fields: UnionToIntersection<ReturnType<Ms[number]>>
 ) => Res | Promise<Res>;
 
