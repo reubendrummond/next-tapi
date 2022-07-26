@@ -1,18 +1,15 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { createMiddleware } from "../createMiddleware";
 import { z } from "zod";
-import { router } from "../Router";
+import { createRouter } from "../Router";
 import { EmptyObject } from "./utils";
 
 export type MiddlewareNext = <R extends {} | undefined>(
   opt?: R
 ) => MiddlewareNextResult<R>;
 export type MiddlewareNextResult<R extends {} | undefined> = Promise<
-  // {ok: boolean}
   { ok: boolean } & R
 >;
-
-type MiddlewareNextResultPromise<R> = Promise<MiddlewareNextResult<R>>;
 
 export type RouterMiddleware = (options: {
   req: NextApiRequest;
@@ -48,7 +45,7 @@ type StandardResponse<TData extends {}> = {
   data: TData;
 };
 
-const r = router<StandardResponse<{}>>().middleware(authMiddleware);
+const r = createRouter<StandardResponse<{}>>().middleware(authMiddleware);
 
 const get = r
   .middleware(logger)
@@ -104,7 +101,7 @@ const querySchema = z.object({
 });
 
 const post = r
-  .body(bodySchema)
+  .body(bodySchema.parse)
   .query(querySchema.parse)
   .post(({ req, res, fields, body, query }) => {
     return {

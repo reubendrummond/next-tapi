@@ -1,6 +1,6 @@
 import { ApiError } from "./ApiError";
 import { ErrorHandler } from "./types";
-import { ErrorStatusCodes } from "./types/responses";
+import { ErrorStatusCodes } from "./types/statusCodes";
 
 const DEFAULT_ERROR_CODE = 400;
 const DEFAULT_ERROR_MESSAGE = "There was an error :(";

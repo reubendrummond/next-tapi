@@ -2,8 +2,8 @@ import { ApiError } from "../ApiError";
 import { createMiddleware } from "../createMiddleware";
 import zod from "zod";
 
-export const authMiddleware = createMiddleware((req, res, next) => {
-  next({
+export const authMiddleware = createMiddleware(({ req, res, next }) => {
+  return next({
     session: {
       user: {
         id: 1,
@@ -16,20 +16,20 @@ export const authMiddleware = createMiddleware((req, res, next) => {
 export const validateBodyMiddleware = <T extends zod.ZodObject<any>>(
   schema: T
 ) => {
-  return createMiddleware(({ req }) => {
+  return createMiddleware(({ req, next }) => {
     try {
       const validatedBody = schema.parse(req.body) as zod.infer<T>;
-      return {
+      return next({
         validatedBody,
-      };
+      });
     } catch (err) {
       throw new ApiError(400, "Body is invalid");
     }
   });
 };
 
-export const errorMiddleware = createMiddleware((req) => {
-  throw new ApiError(400, "An error!"); // throw errors in middleware
+export const errorMiddleware = createMiddleware(({ req, next }) => {
+  if (Math.random() < 0.5) throw new ApiError(400, "An error!"); // throw errors in middleware
 
-  return {};
+  return next();
 });

@@ -1,6 +1,6 @@
-import { Router } from "../..";
+import { createRouter } from "../..";
 
-const r = new Router();
+const r = createRouter();
 
 // define type
 r.get<{ id: number; name: string }>((req) => {

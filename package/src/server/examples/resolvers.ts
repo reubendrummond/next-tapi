@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { createResolver } from "./createResolver";
+import { createResolver } from "../createResolver";
+
 /*
 makeNonNullable
 makeStringOrUndefined
@@ -9,12 +10,6 @@ yupResolve(yupSchema)
 */
 
 export const zodResolve = <TSchema extends z.ZodObject<any>>(schema: TSchema) =>
-  createResolver((query) => {
-    return schema.parse(query);
+  createResolver((body) => {
+    return schema.parse(body);
   });
-
-const r = zodResolve(
-  z.object({
-    name: z.string(),
-  })
-);

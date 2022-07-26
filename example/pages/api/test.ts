@@ -1,4 +1,9 @@
-import { ApiError, createMiddleware, createResolver, router } from "next-tapi";
+import {
+  ApiError,
+  createMiddleware,
+  createResolver,
+  createRouter,
+} from "next-tapi";
 import { StandardResponse } from "lib/types/shared";
 import { testSchema } from "lib/schemas/posts";
 import { authMiddleware } from "server/middleware/auth";
@@ -6,7 +11,7 @@ import { loggerMiddleware } from "server/middleware/log";
 import { z } from "zod";
 import { NextApiRequestQuery } from "next/dist/server/api-utils";
 
-const r = router<StandardResponse>()
+const r = createRouter<StandardResponse>()
   .middleware(loggerMiddleware)
   .middleware(authMiddleware);
 

@@ -46,7 +46,7 @@ type OnMiddlewareRecursed = <TFields extends {}>(
   fields: TFields
 ) => MiddlewareNextResult<{}>;
 
-export const router = <TStandardResponse extends {}>() =>
+export const createRouter = <TStandardResponse extends {}>() =>
   // options for error handler, etc
   {
     const errorHandler = defaultErrorHandler;
@@ -155,10 +155,6 @@ type RouterOptions = {
   queryResolver: QueryResolver<any> | null;
   export: () => NextApiHandler;
 };
-
-const s = z.object({
-  input: z.string(),
-});
 
 class Router<
   TStandardResponse extends {} = {},
