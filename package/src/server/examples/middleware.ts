@@ -1,4 +1,4 @@
-import { ApiError } from "../ApiError";
+import { TapiError } from "../TapiError";
 import { createMiddleware } from "../createMiddleware";
 import zod from "zod";
 
@@ -23,13 +23,14 @@ export const validateBodyMiddleware = <T extends zod.ZodObject<any>>(
         validatedBody,
       });
     } catch (err) {
-      throw new ApiError(400, "Body is invalid");
+      throw new TapiError({ status: 400, message: "Body is invalid" });
     }
   });
 };
 
 export const errorMiddleware = createMiddleware(({ req, next }) => {
-  if (Math.random() < 0.5) throw new ApiError(400, "An error!"); // throw errors in middleware
+  if (Math.random() < 0.5)
+    throw new TapiError({ status: 400, message: "An error!" }); // throw errors in middleware
 
   return next();
 });

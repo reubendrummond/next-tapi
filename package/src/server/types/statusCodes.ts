@@ -1,5 +1,13 @@
 export type StatusCodes = NonErrorStatusCodes | ErrorStatusCodes;
 
+export type ErrorResponse = {
+  success: false;
+  error: {
+    message: string;
+    status: ErrorStatusCodes;
+  };
+};
+
 type NonErrorStatusCodes =
   | 200
   | 201

@@ -1,15 +1,8 @@
-import {
-  ApiError,
-  createMiddleware,
-  createResolver,
-  createRouter,
-} from "next-tapi";
+import { TapiError, createResolver, createRouter } from "next-tapi";
 import { StandardResponse } from "lib/types/shared";
 import { testSchema } from "lib/schemas/posts";
 import { authMiddleware } from "server/middleware/auth";
 import { loggerMiddleware } from "server/middleware/log";
-import { z } from "zod";
-import { NextApiRequestQuery } from "next/dist/server/api-utils";
 
 const r = createRouter<StandardResponse>()
   .middleware(loggerMiddleware)
@@ -35,7 +28,7 @@ const get = r
         id: query.id[1],
       };
 
-    throw new ApiError(400, "oh no!");
+    throw new TapiError({ message: "oh no!" });
   })
   .get(({ fields, query }) => {
     query.id;
@@ -50,19 +43,12 @@ const get = r
     };
   });
 
-const queryResolver = createResolver((query) => {
-  return {
-    nonsense: true,
-  };
-});
-
 const post = r
   .middleware(({ next, req }) => {
     console.log(req.query);
     return next();
   })
   .body(testSchema.parse)
-  // .query(testSchema.parse)
   .post(({ body, query, res, req }) => {
     res.status(201);
     return {

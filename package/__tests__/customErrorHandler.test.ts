@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { createMocks, RequestMethod } from "node-mocks-http";
-import { createMiddleware, Router, ApiError, ErrorHandler } from "../index";
+import { createRouter, TapiError, ErrorHandler } from "../index";
 
 const MY_CUSTOM_ERROR_MESSAGE = "Custom!!!";
 const DEFAULT_ERROR_STATUS = 123;
@@ -20,7 +20,7 @@ const customErrorHandler: ErrorHandler<{
     message: string;
     status: number;
   };
-}> = (res, err) => {
+}> = (req, res, err) => {
   let status = DEFAULT_ERROR_STATUS;
   let message = "";
 
@@ -38,17 +38,19 @@ const customErrorHandler: ErrorHandler<{
   });
 };
 
-const r = new Router({ errorHandler: customErrorHandler });
+const r = createRouter({
+  errorHandler: customErrorHandler,
+});
 
-r.get((req) => {
-  throw new ApiError(403, "A message");
+r.get(() => {
+  throw new TapiError({ status: 403, message: "A message" });
   return {};
 });
-r.post((req) => {
+r.post(() => {
   throw new Error("This message should not show");
   return {};
 });
-r.delete((req) => {
+r.delete(() => {
   throw new MyCustomError(403);
   return {};
 });

@@ -1,21 +1,21 @@
-import { Router } from "../index";
+import { createRouter } from "../index";
 import {
   validateBodyMiddleware,
   authMiddleware,
   errorMiddleware,
 } from "../src/server/examples/middleware";
-import * as zod from "zod";
-import { ApiError } from "../index";
+import { z } from "zod";
+import { TapiError } from "../index";
 import { createMocks, RequestMethod } from "node-mocks-http";
 import { NextApiRequest, NextApiResponse } from "next";
 
-const testBody = zod.object({
-  id: zod.number(),
-  name: zod.string(),
-  email: zod.string().email(),
+const testBody = z.object({
+  id: z.number(),
+  name: z.string(),
+  email: z.string().email(),
 });
 
-const validBody: zod.infer<typeof testBody> = {
+const validBody: z.infer<typeof testBody> = {
   id: 123456789,
   name: "Next Tapi",
   email: "me@gmail.com",
@@ -33,51 +33,42 @@ const invalidBody2 = {
   email: "me@gmail",
 };
 
-const r = new Router();
+const r = createRouter().middleware(authMiddleware);
 
-r.middleware([authMiddleware, errorMiddleware]).get((re, { session }) => {
-  throw new ApiError(403, "You are not authorised!");
-
+r.body(testBody.parse).get(({ fields: { session }, body }) => {
   return {
     session,
+    body,
   };
 });
 
-r.middleware([authMiddleware, validateBodyMiddleware(testBody)]).post(
-  (req, { session, validatedBody }) => {
-    return {
-      session,
-      validatedBody,
-    };
-  }
-);
+r.body(testBody.parse).post(({ fields: { session }, body }) => {
+  return {
+    session,
+    body,
+  };
+});
 
-r.middleware([authMiddleware, validateBodyMiddleware(testBody)]).put(
-  (req, { session, validatedBody }) => {
-    return {
-      session,
-      validatedBody,
-    };
-  }
-);
+r.body(testBody.parse).put(({ fields: { session }, body }) => {
+  return {
+    session,
+    body,
+  };
+});
 
-r.middleware([authMiddleware, validateBodyMiddleware(testBody)]).delete(
-  (req, { session, validatedBody }) => {
-    return {
-      session,
-      validatedBody,
-    };
-  }
-);
+r.body(testBody.parse).delete(({ fields: { session }, body }) => {
+  return {
+    session,
+    body,
+  };
+});
 
-r.middleware([authMiddleware, validateBodyMiddleware(testBody)]).patch(
-  (req, { session, validatedBody }) => {
-    return {
-      session,
-      validatedBody,
-    };
-  }
-);
+r.body(testBody.parse).patch(({ fields: { session }, body }) => {
+  return {
+    session,
+    body,
+  };
+});
 
 const handler = r.export();
 
@@ -98,7 +89,7 @@ describe.each<RequestMethod>(["POST", "DELETE", "PUT", "PATCH"])(
       expect(res._getStatusCode()).toBe(200);
       expect(JSON.parse(res._getData())).toEqual(
         expect.objectContaining({
-          validatedBody: validBody,
+          body: validBody,
         })
       );
     });
