@@ -1,5 +1,7 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
+import { NextApiRequestQuery } from "next/dist/server/api-utils";
 import { z } from "zod";
+import { defaultErrorHandler } from "./errorHandler";
 import { Methods } from "./types/methods";
 import {
   RouterMiddleware,
@@ -8,82 +10,150 @@ import {
 } from "./types/middleware";
 import { EmptyObject } from "./types/utils";
 
-type DispatcherOptions = {
-  method: Methods;
-  handler: any;
-  middleware: [];
-  bodySchema: any;
-  querySchema: any;
+type QueryResolver<TRes extends {}> = (query: NextApiRequestQuery) => TRes;
+type BodyResolver<TRes extends {}> = (body: any) => TRes;
+
+type MethodDefinition = {
+  handler: Handler<any, any, any, any> | null;
+  middleware: RouterMiddleware[];
+  bodyResolver: BodyResolver<any> | null;
+  queryResolver: QueryResolver<any> | null;
 };
+
+type DispatcherOptions = MethodDefinition & {
+  method: Methods;
+};
+
+type Handler<TRes, TMiddlewareFields, TBody, TQuery> = ({
+  req,
+  res,
+  fields,
+  body,
+  query,
+}: {
+  req: NextApiRequest;
+  res: NextApiResponse<never>;
+  fields: TMiddlewareFields;
+  body: TBody extends {} ? TBody : undefined;
+  query: TQuery extends {} ? TQuery : undefined;
+}) => TRes;
 
 type DispatchHandler = (options: DispatcherOptions) => void;
 
-export const router = <TStandardResponse extends {}>() => {
-  const methodDef: {
-    [key in Methods]: {
-      handler: null;
-      middleware: [];
-      bodySchema: null;
-      querySchema: null;
+type OnMiddlewareRecursed = <TFields extends {}>(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  fields: TFields
+) => MiddlewareNextResult<{}>;
+
+export const router = <TStandardResponse extends {}>() =>
+  // options for error handler, etc
+  {
+    const errorHandler = defaultErrorHandler;
+
+    const methods: ReadonlyArray<Methods> = [
+      "get",
+      "post",
+      "delete",
+      "put",
+      "patch",
+    ];
+    const methodDefs = methods.reduce(
+      (acc, curr) => {
+        acc[curr] = {
+          handler: null,
+          middleware: [],
+          bodyResolver: null,
+          queryResolver: null,
+        };
+        return acc;
+      },
+      {} as {
+        [key in Methods]: MethodDefinition;
+      }
+    );
+
+    const build = (): NextApiHandler => async (req, res) => {
+      try {
+        const method = req?.method?.toLowerCase() as Methods | undefined;
+        if (!method || !methods.includes(method)) throw Error();
+        const { handler, middleware, bodyResolver, queryResolver } =
+          methodDefs[method];
+
+        if (!handler) throw Error();
+
+        const onMiddlewareComplete: OnMiddlewareRecursed = async (
+          req,
+          res,
+          fields
+        ) => {
+          // validate inputs
+          let body: {} | undefined;
+          let query: {} | undefined;
+
+          if (bodyResolver) body = bodyResolver(req.body);
+          if (queryResolver) query = queryResolver(req.query);
+
+          const response = await handler({ req, res, fields, body, query });
+          res.json(response);
+
+          return { ok: true, ...fields };
+        };
+
+        const callMiddlewareRecursive = async (
+          count: number,
+          req: NextApiRequest,
+          res: NextApiResponse,
+          fields: {}
+        ): MiddlewareNextResult<{}> => {
+          try {
+            const m = middleware[count];
+            if (!m) return onMiddlewareComplete(req, res, fields);
+
+            const next = ((opts: {} | undefined) => {
+              if (typeof opts === "object") {
+                fields = { ...fields, ...opts };
+              }
+
+              return callMiddlewareRecursive(count + 1, req, res, fields);
+            }) as MiddlewareNext;
+
+            return await m({ req, res, next, fields });
+          } catch (err) {
+            errorHandler(res, err);
+            return { ok: false, ...fields };
+          }
+        };
+
+        // go through middleware
+        const fields = {};
+        await callMiddlewareRecursive(0, req, res, fields);
+      } catch (err) {
+        return errorHandler(res, err);
+      }
     };
-  } = {
-    get: {
-      handler: null,
+
+    const dispatcher: DispatchHandler = ({ method, ...rest }) => {
+      methodDefs[method] = rest;
+    };
+
+    const router = new Router<TStandardResponse>({
+      dispatcher,
       middleware: [],
-      bodySchema: null,
-      querySchema: null,
-    },
-    post: {
-      handler: null,
-      middleware: [],
-      bodySchema: null,
-      querySchema: null,
-    },
-    delete: {
-      handler: null,
-      middleware: [],
-      bodySchema: null,
-      querySchema: null,
-    },
-    put: {
-      handler: null,
-      middleware: [],
-      bodySchema: null,
-      querySchema: null,
-    },
-    patch: {
-      handler: null,
-      middleware: [],
-      bodySchema: null,
-      querySchema: null,
-    },
+      bodyResolver: null,
+      queryResolver: null,
+      export: build,
+    });
+
+    return router;
   };
 
-  const build = () => {};
-
-  const dispatcher: DispatchHandler = ({ method, ...rest }) => {
-    methodDef[method] = rest;
-  };
-
-  const router = new Router<TStandardResponse>({
-    dispatcher,
-    middleware: [],
-    bodySchema: null,
-    querySchema: null,
-    // export: build
-  });
-
-  return router;
-};
-
-type SubRouterOptions<
-  TBody extends z.ZodObject<any> | null,
-  TQuery extends z.ZodObject<any> | null
-> = {
+type RouterOptions = {
   dispatcher: DispatchHandler;
   middleware: RouterMiddleware[];
-  bodySchema: TBody;
-  querySchema: TQuery;
+  bodyResolver: BodyResolver<any> | null;
+  queryResolver: QueryResolver<any> | null;
+  export: () => NextApiHandler;
 };
 
 const s = z.object({
@@ -93,37 +163,42 @@ const s = z.object({
 class Router<
   TStandardResponse extends {} = {},
   TMiddlewareFields extends {} = {},
-  TBody extends z.ZodObject<any> | null = null,
-  TQuery extends z.ZodObject<any> | null = null
+  TBody extends {} | null = null,
+  TQuery extends {} | null = null
 > {
   private _dispatcher: DispatchHandler;
   private _middleware: RouterMiddleware[];
-  private _bodySchema: TBody;
-  private _querySchema: TQuery;
+  private _bodyResolver: BodyResolver<any> | null;
+  private _queryResolver: QueryResolver<{}> | null;
+  private _build: () => NextApiHandler;
 
-  constructor(options: SubRouterOptions<TBody, TQuery>) {
+  constructor(options: RouterOptions) {
     this._dispatcher = options.dispatcher;
     this._middleware = options.middleware;
-    this._bodySchema = options.bodySchema;
-    this._querySchema = options.querySchema;
+    this._bodyResolver = options.bodyResolver;
+    this._queryResolver = options.queryResolver;
+    this._build = options.export;
   }
+
+  export = () => this._build();
 
   middleware = <R extends {}>(
     m: ({
       req,
       res,
       next,
+      fields,
     }: {
       req: NextApiRequest;
       res: NextApiResponse<EmptyObject>;
       next: MiddlewareNext;
+      fields: TMiddlewareFields;
     }) => MiddlewareNextResult<R> // sketchhhhh
   ) => {
     return new Router<
       TStandardResponse,
-      // TMiddlewareFields & R,
       {
-        // this tomfoolery is to combine the object union
+        // this tomfoolery is to combine the object union nicely, equivalent to TMiddlewareFields & R
         [Key in
           | keyof TMiddlewareFields
           | keyof R]: Key extends keyof TMiddlewareFields
@@ -137,20 +212,20 @@ class Router<
     >({
       middleware: [...this._middleware, m],
       dispatcher: this._dispatcher,
-      bodySchema: this._bodySchema,
-      querySchema: this._querySchema,
+      bodyResolver: this._bodyResolver,
+      queryResolver: this._queryResolver,
+      export: this._build,
     });
   };
 
-  public body = <TSchema extends z.ZodObject<any>>(schema: TSchema) => {
-    const r = new Router<TStandardResponse, TMiddlewareFields, TSchema, TQuery>(
-      {
-        middleware: this._middleware,
-        dispatcher: this._dispatcher,
-        bodySchema: schema,
-        querySchema: this._querySchema,
-      }
-    );
+  public body = <TRes extends {}>(resolver: (body: any) => TRes) => {
+    const r = new Router<TStandardResponse, TMiddlewareFields, TRes, TQuery>({
+      middleware: this._middleware,
+      dispatcher: this._dispatcher,
+      bodyResolver: resolver,
+      queryResolver: this._queryResolver,
+      export: this._build,
+    });
 
     return {
       get: r.get,
@@ -162,12 +237,15 @@ class Router<
     };
   };
 
-  public query = <TSchema extends z.ZodObject<any>>(schema: TSchema) => {
-    const r = new Router<TStandardResponse, TMiddlewareFields, TBody, TSchema>({
+  public query = <TRes extends {}>(
+    resolver: (query: NextApiRequestQuery) => TRes
+  ) => {
+    const r = new Router<TStandardResponse, TMiddlewareFields, TBody, TRes>({
       middleware: this._middleware,
       dispatcher: this._dispatcher,
-      bodySchema: this._bodySchema,
-      querySchema: schema,
+      bodyResolver: this._bodyResolver,
+      queryResolver: resolver,
+      export: this._build,
     });
 
     return {
@@ -180,25 +258,19 @@ class Router<
   };
 
   private createRoute = (method: Methods) => {
-    return <Res extends TStandardResponse>(
-      handler: ({
-        req,
-        res,
-        fields,
-        body,
-        query,
-      }: {
-        req: NextApiRequest;
-        res: Omit<NextApiResponse, "json"> & {
-          json: <B extends TStandardResponse>(body: B) => B;
-        };
-        fields: TMiddlewareFields;
-        body: TBody extends z.ZodObject<any> ? z.infer<TBody> : undefined;
-        query: TQuery extends z.ZodObject<any> ? z.infer<TQuery> : undefined;
-      }) => Res
+    return <TRes extends TStandardResponse>(
+      handler: Handler<TRes, TMiddlewareFields, TBody, TQuery>
     ) => {
       // do smthn with handler
-      return handler;
+      this._dispatcher({
+        method,
+        handler,
+        middleware: this._middleware,
+        bodyResolver: this._bodyResolver,
+        queryResolver: this._queryResolver,
+      });
+
+      return {} as TRes;
     };
   };
 

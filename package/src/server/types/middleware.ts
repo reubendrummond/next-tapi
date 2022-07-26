@@ -4,18 +4,21 @@ import { z } from "zod";
 import { router } from "../Router";
 import { EmptyObject } from "./utils";
 
-export type MiddlewareNext = <R extends {}>(opt?: R) => MiddlewareNextResult<R>;
+export type MiddlewareNext = <R extends {} | undefined>(
+  opt?: R
+) => MiddlewareNextResult<R>;
 export type MiddlewareNextResult<R extends {} | undefined> = Promise<
   // {ok: boolean}
-  Omit<{ ok: boolean } & R, keyof R>
+  { ok: boolean } & R
 >;
 
-export type MiddlewareNextResultPromise<R> = Promise<MiddlewareNextResult<R>>;
+type MiddlewareNextResultPromise<R> = Promise<MiddlewareNextResult<R>>;
 
 export type RouterMiddleware = (options: {
   req: NextApiRequest;
   res: NextApiResponse<EmptyObject>;
   next: MiddlewareNext;
+  fields: any;
 }) => MiddlewareNextResult<any>;
 
 const authMiddleware = createMiddleware(({ next }) => {
@@ -68,27 +71,27 @@ const get = r
   .query(
     z.object({
       limit: z.number().nullable(),
-    })
+    }).parse
   )
   .get(({ req, res, fields, query }) => {
     fields.age;
     fields.another;
 
-    return res.json({
+    return {
       success: true,
       data: {
         standard: "no!",
       },
-    });
+    };
   });
 
 const put = r.put(({ req, res, fields: { session } }) => {
-  return res.json({
+  return {
     success: true,
     data: {
       session,
     },
-  });
+  };
 });
 
 const bodySchema = z.object({
@@ -102,10 +105,10 @@ const querySchema = z.object({
 
 const post = r
   .body(bodySchema)
-  .query(querySchema)
+  .query(querySchema.parse)
   .post(({ req, res, fields, body, query }) => {
-    return res.json({
+    return {
       success: true,
       data: {},
-    });
+    };
   });

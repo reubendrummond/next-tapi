@@ -1,50 +1,72 @@
-import { ApiError } from "next-tapi";
-import { authMiddleware } from "server/middleware/auth";
+import { ApiError, createMiddleware, createResolver, router } from "next-tapi";
 import { StandardResponse } from "lib/types/shared";
-import { validateBody } from "server/middleware/validateBody";
 import { testSchema } from "lib/schemas/posts";
-import { mainRouter } from "server/routers";
+import { authMiddleware } from "server/middleware/auth";
+import { loggerMiddleware } from "server/middleware/log";
+import { z } from "zod";
+import { NextApiRequestQuery } from "next/dist/server/api-utils";
 
-const router = mainRouter();
+const r = router<StandardResponse>()
+  .middleware(loggerMiddleware)
+  .middleware(authMiddleware);
 
-export const GET = router
-  // .get<StandardResponse<{ session: {} }>>((req, { session }) => {
-  .get((req) => {
-    if (Math.random() < 0.5)
-      throw new ApiError(404, "This was not found buddy");
-
-    return {
-      success: true,
-      data: {
-        thisIsInfered: "so is this type",
+const get = r
+  .middleware(({ next, fields }) => {
+    return next({
+      body: {
+        idk: 1,
       },
-    };
-  });
-
-export const POST = router
-  .middleware([authMiddleware, validateBody(testSchema)])
-  .post<StandardResponse<{ session: any; validatedBody: any }>>(
-    (req, { session, validatedBody }) => {
+    });
+  })
+  .query((query) => {
+    if (typeof query.id === "string")
       return {
-        success: true,
-        data: {
-          session,
-          validatedBody,
-        },
+        ...query,
+        id: query.id,
       };
-    }
-  );
+    if (Array.isArray(query.id))
+      return {
+        ...query,
+        id: query.id[1],
+      };
 
-export const DELETE = router
-  .middleware([authMiddleware])
-  .delete<StandardResponse<{ name: string }>>((req, { session }) => {
+    throw new ApiError(400, "oh no!");
+  })
+  .get(({ fields, query }) => {
+    query.id;
+
     return {
       success: true,
       data: {
-        name: "lksjad",
-        session,
+        some: "data",
+        query,
+        fields,
       },
     };
   });
 
-export default router.export();
+const queryResolver = createResolver((query) => {
+  return {
+    nonsense: true,
+  };
+});
+
+const post = r
+  .middleware(({ next, req }) => {
+    console.log(req.query);
+    return next();
+  })
+  .body(testSchema.parse)
+  // .query(testSchema.parse)
+  .post(({ body, query, res, req }) => {
+    res.status(201);
+    return {
+      success: true,
+      data: {
+        body,
+        query,
+      },
+    };
+  });
+
+export default r.export();

@@ -13,3 +13,11 @@ export type UnionToIntersection<U> = (
 export type EmptyObject = {
   [key: PropertyKey]: never;
 };
+
+type FormatObjectIntersection<T1 extends {}, T2 extends {}> = {
+  [Key in keyof T1 | keyof T2]: Key extends keyof T1
+    ? T1[Key]
+    : Key extends keyof T2
+    ? T2[Key]
+    : never;
+};

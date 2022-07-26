@@ -1,52 +1,69 @@
-import { authMiddleware, verifyBody } from "./middleware";
 import { createMiddleware } from "../createMiddleware";
-import { Router } from "../Router";
+import { router } from "../Router";
+import { z } from "zod";
 
-const r = new Router();
+type StandardResponse<TData extends {}> = {
+  success: true;
+  data: TData;
+};
 
-export const get = r.get((req) => {
+const getSession = async (req: any, res: any) => {
   return {
-    name: "yoo",
-    age: 19,
+    user: {
+      id: 1,
+      name: "test",
+    },
   };
+};
+const authMiddleware = createMiddleware(async ({ req, res, next }) => {
+  const session = await getSession(req, res);
+
+  return next(session);
 });
 
-export const getMid = r
-  .middleware([
-    authMiddleware,
-    verifyBody,
-    createMiddleware((req) => {
-      return { newField: 123456789 };
-    }),
-  ])
-  .get((req, fields) => {
-    fields.session;
-    fields.verifiedBody;
-    fields.newField;
+const r = router<StandardResponse<{}>>().middleware(authMiddleware);
+
+const get = r
+  .middleware(({ next }) => {
+    return next({
+      age: 123,
+    });
+  })
+  .get(({ req, res, fields, body, query }) => {
+    fields.user.id;
+
+    res.status(201);
+
+    if (Math.random() < 0.5)
+      return {
+        success: true,
+        data: {
+          insideRandom: true,
+        },
+      };
 
     return {
-      something: "yes",
+      success: true,
+      data: {
+        this: "is inferred",
+        so: 1000110110,
+      },
     };
   });
 
-r.get((req) => {
-  return {};
-});
-
-const rooter = new Router().globalMiddleware([authMiddleware]);
-
-rooter
-  .middleware([
-    createMiddleware(() => {
-      return { newField: "stringval" };
-    }),
-  ])
-  .get((req, { session, newField }) => {
-    return {};
+const post = r
+  .body(
+    z.object({
+      name: z.string(),
+      age: z.number(),
+      photoURL: z.string().nullable(),
+    })
+  )
+  .post(({ req, res, body }) => {
+    return {
+      success: true,
+      data: {
+        body,
+      },
+    };
   });
-
-rooter.get((req, { session }) => {
-  return {
-    session,
-  };
-});
