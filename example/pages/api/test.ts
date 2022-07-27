@@ -60,4 +60,6 @@ const post = r
     };
   });
 
+export type ApiTestGET = typeof get;
+
 export default r.export();

@@ -1,4 +1,4 @@
-import { ApiError, createMiddleware } from "next-tapi";
+import { TapiError, createMiddleware } from "next-tapi";
 export const authMiddleware = createMiddleware(async ({ next }) => {
   // handle unauthenticated
   // throw new ApiError(403, "not alloed :(");

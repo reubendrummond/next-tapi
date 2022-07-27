@@ -55,7 +55,6 @@ describe.each<RequestMethod>(["GET"])("request", (method) => {
 
     const data = JSON.parse(res._getData());
     expect(data).toBe("This is illegal but it shouldn't break.");
-    // expect(data.data).toBe("Regular response");
     expect(res._getStatusCode()).toBe(200);
   });
 });
