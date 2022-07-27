@@ -5,9 +5,7 @@
   "files": [
     "dist",
     "index.js",
-    "index.d.ts",
-    "client.js",
-    "client.d.ts"
+    "index.d.ts"
   ],
   "types": "./index.d.ts",
   "main": "./index.js",
