@@ -10,8 +10,24 @@ Next tAPI (Next.js typesafe API) is an intuitive and powerful abstraction of [Ne
 - enforce response type consistency
 
 ## Contents
-
-<-- AUTOGENERATE CONTENTS HERE -->
+  - [Installation](#installation)
+  - [Getting Started](#getting-started)
+    - [Defining response type](#defining-response-type)
+    - [Error handling](#error-handling)
+  - [Middleware](#middleware)
+    - [Error handling in middleware](#error-handling-in-middleware)
+    - [Reusing middleware](#reusing-middleware)
+  - [Special middleware](#special-middleware)
+    - [Zod](#zod)
+    - [Yup](#yup)
+  - [Customisation](#customisation)
+    - [Enforcing response types](#enforcing-response-types)
+    - [Custom error handler](#custom-error-handler)
+    - [Router types](#router-types)
+  - [Comparison](#comparison)
+    - [Method handlers](#method-handlers)
+    - [Error handling](#error-handling-1)
+  - [Coming soon](#coming-soon)
 
 ## Installation
 
