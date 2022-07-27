@@ -1,6 +1,6 @@
 import { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
-import { createMocks, RequestMethod } from "node-mocks-http";
-import { createRouter, TapiError } from "../index";
+import { createMocks } from "node-mocks-http";
+import { createRouter } from "../index";
 import { z } from "zod";
 
 const testSchema = z.object({
