@@ -1,11 +1,6 @@
 import { createRouter } from "../index";
-import {
-  validateBodyMiddleware,
-  authMiddleware,
-  errorMiddleware,
-} from "../src/server/examples/middleware";
+import { authMiddleware } from "../src/server/examples/middleware";
 import { z } from "zod";
-import { TapiError } from "../index";
 import { createMocks, RequestMethod } from "node-mocks-http";
 import { NextApiRequest, NextApiResponse } from "next";
 

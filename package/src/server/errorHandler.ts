@@ -20,11 +20,12 @@ export const defaultErrorHandler: ErrorHandler<ErrorResponse> = (
     message = err.message;
   }
 
-  return res.status(status).json({
-    success: false,
-    error: {
-      message,
-      status,
-    },
-  });
+  if (!res.writableFinished)
+    res.status(status).json({
+      success: false,
+      error: {
+        message,
+        status,
+      },
+    });
 };

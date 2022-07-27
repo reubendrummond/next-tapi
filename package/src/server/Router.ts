@@ -81,7 +81,7 @@ export const createRouter = <
         if (queryResolver) query = queryResolver(req.query);
 
         const response = await handler({ req, res, fields, body, query });
-        res.json(response);
+        if (!res.writableFinished) res.json(response);
 
         return { ok: true, ...fields };
       };
@@ -164,7 +164,7 @@ class Router<
       fields,
     }: {
       req: NextApiRequest;
-      res: NextApiResponse<EmptyObject>;
+      res: NextApiResponse<never>;
       next: MiddlewareNext;
       fields: TMiddlewareFields;
     }) => MiddlewareNextResult<R> // sketchhhhh

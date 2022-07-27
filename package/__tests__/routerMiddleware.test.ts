@@ -29,6 +29,10 @@ describe.each<RequestMethod>(["GET"])("request", (method) => {
   r.middleware(logger)
     .middleware(someMiddleware)
     .middleware(delay)
+    .middleware(({ next, res }) => {
+      res.json("This is illegal but it shouldn't break." as unknown as never);
+      return next();
+    })
     .get(({ fields }) => {
       expect(fields.data).toBe("someMiddleware");
 
@@ -50,8 +54,8 @@ describe.each<RequestMethod>(["GET"])("request", (method) => {
     );
 
     const data = JSON.parse(res._getData());
-
-    expect(data.data).toBe("Regular response");
+    expect(data).toBe("This is illegal but it shouldn't break.");
+    // expect(data.data).toBe("Regular response");
     expect(res._getStatusCode()).toBe(200);
   });
 });

@@ -13,7 +13,7 @@ export const createMiddleware = <R>(
     next,
   }: {
     req: NextApiRequest;
-    res: NextApiResponse<EmptyObject>;
+    res: NextApiResponse<never>;
     next: MiddlewareNext;
   }) => MiddlewareNextResult<R>
 ) => {
