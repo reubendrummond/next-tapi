@@ -22,7 +22,9 @@ jobs:
         working-directory: ./package
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v1
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node }}
       - uses: pnpm/action-setup@v2.2.2
         with:
           version: 6.0.2
