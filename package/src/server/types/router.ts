@@ -1,43 +1,50 @@
-import { RouterMiddleware, UnwrapMiddleware } from "./middleware";
+import { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
+import { NextApiRequestQuery } from "next/dist/server/api-utils";
 import { Methods } from "./methods";
-import { MethodHandler } from "./handler";
-import { NextApiRequest } from "next";
-import { UnionToIntersection } from "./utils";
+import { RouterMiddleware, MiddlewareNextResult } from "./middleware";
 
-// export type RouterMethodHandler<
-//   R extends {} = {
-//     [key: PropertyKey]: never;
-//   }
-// > = <Ms extends RouterMiddleware<any>[]>(
-//   middleware: Ms,
-//   handler: MethodHandler<UnwrapMiddleware<Ms>, R>
-// ) => void;
+export type QueryResolver<TRes extends {}> = (
+  query: NextApiRequestQuery
+) => TRes;
+export type BodyResolver<TRes extends {}> = (body: any) => TRes;
 
-// export type RouterHandlers<T> = {
-//   [key in Methods]: RouteHandlerObject;
-// };
-
-export type HandlerWrapper<Res extends {}> = (
-  req: NextApiRequest
-) => Res | Promise<Res>;
-
-export type HandlerWrapperWithMiddleware<
-  Ms extends RouterMiddleware<any, any>[],
-  Res extends {}
-> = (
-  req: NextApiRequest,
-  fields: UnionToIntersection<ReturnType<Ms[number]>>
-) => Res | Promise<Res>;
-
-export type RouteHandlerObject = {
-  handler: HandlerWrapperWithMiddleware<
-    RouterMiddleware<any, any>[],
-    {}
-  > | null;
-  middleware: RouterMiddleware<any, any>[];
+export type MethodDefinition = {
+  handler: Handler<any, any, any, any> | null;
+  middleware: RouterMiddleware[];
+  bodyResolver: BodyResolver<any> | null;
+  queryResolver: QueryResolver<any> | null;
 };
 
-export type SetHandlerObject = (
-  method: Methods,
-  routeHandler: RouteHandlerObject
-) => void;
+export type DispatcherOptions = MethodDefinition & {
+  method: Methods;
+};
+
+export type Handler<TRes, TMiddlewareFields, TBody, TQuery> = ({
+  req,
+  res,
+  fields,
+  body,
+  query,
+}: {
+  req: NextApiRequest;
+  res: NextApiResponse<never>;
+  fields: TMiddlewareFields;
+  body: TBody extends {} ? TBody : undefined;
+  query: TQuery extends {} ? TQuery : undefined;
+}) => TRes;
+
+export type DispatchHandler = (options: DispatcherOptions) => void;
+
+export type OnMiddlewareRecursed = <TFields extends {}>(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  fields: TFields
+) => MiddlewareNextResult<{}>;
+
+export type RouterOptions = {
+  dispatcher: DispatchHandler;
+  middleware: RouterMiddleware[];
+  bodyResolver: BodyResolver<any> | null;
+  queryResolver: QueryResolver<any> | null;
+  export: () => NextApiHandler;
+};

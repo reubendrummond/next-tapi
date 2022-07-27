@@ -1,8 +1,8 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { createMocks, RequestMethod } from "node-mocks-http";
-import { Router } from "../index";
+import { createRouter } from "../index";
 
-const r = new Router();
+const r = createRouter();
 const handler = r.export();
 
 describe.each<RequestMethod>(["GET", "POST", "DELETE", "PUT", "PATCH"])(

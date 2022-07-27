@@ -1,4 +1,7 @@
-import { NextApiResponse } from "next";
-import { StandardErrorResponse } from "./responses";
+import { NextApiRequest, NextApiResponse } from "next";
 
-export type ErrorHandler<R = {}> = (res: NextApiResponse<R>, err: any) => void;
+export type ErrorHandler<R extends {}> = (
+  req: NextApiRequest,
+  res: NextApiResponse<R>,
+  err: any
+) => void;

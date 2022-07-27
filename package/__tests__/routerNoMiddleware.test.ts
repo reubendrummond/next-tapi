@@ -1,12 +1,11 @@
-import { Router } from "../index";
-import { ApiError } from "../index";
+import { createRouter } from "../index";
 import { createMocks, RequestMethod } from "node-mocks-http";
 import { NextApiRequest, NextApiResponse } from "next";
 
 const body = { data: "Next Tapi" };
 const unauthorisedMessage = "You are not authorised!";
 
-const r = new Router();
+const r = createRouter();
 
 r.get((res) => {
   return {

@@ -1,22 +1,12 @@
-export interface StandardSuccessResponse<T extends {}> {
-  success: true;
-  data: T;
-}
+export type StatusCodes = NonErrorStatusCodes | ErrorStatusCodes;
 
-export interface StandardErrorResponse {
+export type ErrorResponse = {
   success: false;
   error: {
     message: string;
     status: ErrorStatusCodes;
   };
-}
-
-export type StandardResponse<T = {}> =
-  | StandardSuccessResponse<T>
-  | StandardErrorResponse;
-
-// status codes
-export type StatusCodes = NonErrorStatusCodes | ErrorStatusCodes;
+};
 
 type NonErrorStatusCodes =
   | 200

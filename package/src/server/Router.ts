@@ -1,196 +1,255 @@
-import { NextApiHandler } from "next";
-import { ApiError } from "./ApiError";
+import { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
+import { NextApiRequestQuery } from "next/dist/server/api-utils";
 import { defaultErrorHandler } from "./errorHandler";
+import { TapiError } from "./TapiError";
 import { ErrorHandler } from "./types";
 import { Methods } from "./types/methods";
-import { RouterMiddleware } from "./types/middleware";
 import {
-  HandlerWrapper,
-  HandlerWrapperWithMiddleware,
-  RouteHandlerObject,
-  SetHandlerObject,
+  RouterMiddleware,
+  MiddlewareNext,
+  MiddlewareNextResult,
+} from "./types/middleware";
+import {
+  BodyResolver,
+  DispatchHandler,
+  Handler,
+  MethodDefinition,
+  OnMiddlewareRecursed,
+  QueryResolver,
+  RouterOptions,
 } from "./types/router";
+import { ErrorResponse } from "./types/statusCodes";
+import { EmptyObject } from "./types/utils";
 
-export class Router {
-  private errorHandler: ErrorHandler;
-  private gloablMiddleware: RouterMiddleware<any, any>[] = [];
+export const createRouter = <
+  TStandardResponse extends {},
+  TStandardErrorResponse extends {} = ErrorResponse
+>(options?: {
+  errorHandler?: ErrorHandler<TStandardErrorResponse>;
+}) => {
+  const errorHandler = options?.errorHandler || defaultErrorHandler;
 
-  private routeHandlers: {
-    [method in Methods]: RouteHandlerObject;
-  } = {
-    get: {
-      handler: null,
-      middleware: [],
+  const methods: ReadonlyArray<Methods> = [
+    "get",
+    "post",
+    "delete",
+    "put",
+    "patch",
+  ];
+  const methodDefs = methods.reduce(
+    (acc, curr) => {
+      acc[curr] = {
+        handler: null,
+        middleware: [],
+        bodyResolver: null,
+        queryResolver: null,
+      };
+      return acc;
     },
-    post: {
-      handler: null,
-      middleware: [],
-    },
-    delete: {
-      handler: null,
-      middleware: [],
-    },
-    put: {
-      handler: null,
-      middleware: [],
-    },
-    patch: {
-      handler: null,
-      middleware: [],
-    },
+    {} as {
+      [key in Methods]: MethodDefinition;
+    }
+  );
+
+  const build = (): NextApiHandler => async (req, res) => {
+    try {
+      const method = req?.method?.toLowerCase() as Methods | undefined;
+      if (!method || !methods.includes(method))
+        throw new TapiError({
+          message: `${req.method} method not supported`,
+          status: 405,
+        });
+      const { handler, middleware, bodyResolver, queryResolver } =
+        methodDefs[method];
+
+      if (!handler)
+        throw new TapiError({
+          message: `${req.method} method not supported`,
+          status: 405,
+        });
+
+      const onMiddlewareComplete: OnMiddlewareRecursed = async (
+        req,
+        res,
+        fields
+      ) => {
+        // validate inputs
+        let body: {} | undefined;
+        let query: {} | undefined;
+
+        if (bodyResolver) body = bodyResolver(req.body);
+        if (queryResolver) query = queryResolver(req.query);
+
+        const response = await handler({ req, res, fields, body, query });
+        if (!res.writableFinished) res.json(response);
+
+        return { ok: true, ...fields };
+      };
+
+      const callMiddlewareRecursive = async (
+        count: number,
+        req: NextApiRequest,
+        res: NextApiResponse,
+        fields: {}
+      ): MiddlewareNextResult<{}> => {
+        try {
+          const m = middleware[count];
+          if (!m) return onMiddlewareComplete(req, res, fields);
+
+          const next = ((opts: {} | undefined) => {
+            if (typeof opts === "object") {
+              fields = { ...fields, ...opts };
+            }
+
+            return callMiddlewareRecursive(count + 1, req, res, fields);
+          }) as MiddlewareNext;
+
+          return await m({ req, res, next, fields });
+        } catch (err) {
+          errorHandler(req, res, err);
+          return { ok: false, ...fields };
+        }
+      };
+
+      // go through middleware
+      const fields = {};
+      await callMiddlewareRecursive(0, req, res, fields);
+    } catch (err) {
+      return errorHandler(req, res, err);
+    }
   };
 
-  constructor(options?: { errorHandler: ErrorHandler }) {
-    this.errorHandler = options?.errorHandler || defaultErrorHandler;
+  const dispatcher: DispatchHandler = ({ method, ...rest }) => {
+    methodDefs[method] = rest;
+  };
+
+  const router = new Router<TStandardResponse>({
+    dispatcher,
+    middleware: [],
+    bodyResolver: null,
+    queryResolver: null,
+    export: build,
+  });
+
+  return router;
+};
+
+class Router<
+  TStandardResponse extends {} = {},
+  TMiddlewareFields extends {} = {},
+  TBody extends {} | null = null,
+  TQuery extends {} | null = null
+> {
+  private _dispatcher: DispatchHandler;
+  private _middleware: RouterMiddleware[];
+  private _bodyResolver: BodyResolver<any> | null;
+  private _queryResolver: QueryResolver<{}> | null;
+  private _build: () => NextApiHandler;
+
+  constructor(options: RouterOptions) {
+    this._dispatcher = options.dispatcher;
+    this._middleware = options.middleware;
+    this._bodyResolver = options.bodyResolver;
+    this._queryResolver = options.queryResolver;
+    this._build = options.export;
   }
 
-  private setHandler: SetHandlerObject = (
-    method: Methods,
-    routeHandler: RouteHandlerObject
+  export = () => this._build();
+
+  middleware = <R extends {}>(
+    m: ({
+      req,
+      res,
+      next,
+      fields,
+    }: {
+      req: NextApiRequest;
+      res: NextApiResponse<never>;
+      next: MiddlewareNext;
+      fields: TMiddlewareFields;
+    }) => MiddlewareNextResult<R> // sketchhhhh
   ) => {
-    this.routeHandlers[method] = routeHandler;
+    return new Router<
+      TStandardResponse,
+      {
+        // this tomfoolery is to combine the object union nicely, equivalent to TMiddlewareFields & R
+        [Key in
+          | keyof TMiddlewareFields
+          | keyof R]: Key extends keyof TMiddlewareFields
+          ? TMiddlewareFields[Key]
+          : Key extends keyof R
+          ? R[Key]
+          : never;
+      },
+      TBody,
+      TQuery
+    >({
+      middleware: [...this._middleware, m],
+      dispatcher: this._dispatcher,
+      bodyResolver: this._bodyResolver,
+      queryResolver: this._queryResolver,
+      export: this._build,
+    });
   };
 
-  public middleware = <Ms extends RouterMiddleware<any, any>[]>(
-    middleware: Ms
-  ) => {
-    return new MiddlewareRouter<Ms>(this.setHandler, middleware);
-  };
-
-  private combineMiddleware =
-    <GlobalMs extends RouterMiddleware<any, any>[]>() =>
-    <Ms extends RouterMiddleware<any, any>[]>(middleware: Ms) => {
-      return new MiddlewareRouter<GlobalMs | Ms>(this.setHandler, middleware);
-    };
-
-  public globalMiddleware = <Ms extends RouterMiddleware<any, any>[]>(
-    middleware: Ms
-  ) => {
-    this.gloablMiddleware = middleware;
+  public body = <TRes extends {}>(resolver: (body: any) => TRes) => {
+    const r = new Router<TStandardResponse, TMiddlewareFields, TRes, TQuery>({
+      middleware: this._middleware,
+      dispatcher: this._dispatcher,
+      bodyResolver: resolver,
+      queryResolver: this._queryResolver,
+      export: this._build,
+    });
 
     return {
-      get: this.createRouteWithMiddleware<Ms>("get"),
-      post: this.createRouteWithMiddleware<Ms>("post"),
-      delete: this.createRouteWithMiddleware<Ms>("delete"),
-      put: this.createRouteWithMiddleware<Ms>("put"),
-      patch: this.createRouteWithMiddleware<Ms>("patch"),
-      middleware: this.combineMiddleware<Ms>(),
-      export: () => this.export(),
+      get: r.get,
+      post: r.post,
+      delete: r.delete,
+      put: r.put,
+      patch: r.patch,
+      query: r.query,
     };
   };
 
-  private createRoute =
-    (method: Methods) =>
-    <Res extends Record<PropertyKey, any>>(handler: HandlerWrapper<Res>) => {
-      this.setHandler(method, {
-        handler,
-        middleware: [],
-      });
-      return handler;
-    };
+  public query = <TRes extends {}>(
+    resolver: (query: NextApiRequestQuery) => TRes
+  ) => {
+    const r = new Router<TStandardResponse, TMiddlewareFields, TBody, TRes>({
+      middleware: this._middleware,
+      dispatcher: this._dispatcher,
+      bodyResolver: this._bodyResolver,
+      queryResolver: resolver,
+      export: this._build,
+    });
 
-  private createRouteWithMiddleware =
-    <Ms extends RouterMiddleware<any, any>[]>(method: Methods) =>
-    <Res extends Record<PropertyKey, any>>(
-      handler: HandlerWrapperWithMiddleware<Ms, Res>
+    return {
+      get: r.get,
+      post: r.post,
+      delete: r.delete,
+      put: r.put,
+      patch: r.patch,
+    };
+  };
+
+  private createRoute = (method: Methods) => {
+    return <TRes extends TStandardResponse>(
+      handler: Handler<TRes, TMiddlewareFields, TBody, TQuery>
     ) => {
-      this.setHandler(method, {
+      this._dispatcher({
+        method,
         handler,
-        middleware: [],
-      });
-      return handler;
-    };
-
-  public get = this.createRoute("get");
-  public post = this.createRoute("post");
-  public delete = this.createRoute("delete");
-  public put = this.createRoute("put");
-  public patch = this.createRoute("patch");
-
-  export(): NextApiHandler {
-    return async (req, res) => {
-      try {
-        let routeHandler: RouteHandlerObject | undefined;
-
-        switch (req.method) {
-          case "GET":
-            if (!this.routeHandlers.get) break;
-            routeHandler = this.routeHandlers.get;
-            break;
-          case "POST":
-            if (!this.routeHandlers.post) break;
-            routeHandler = this.routeHandlers.post;
-            break;
-          case "PUT":
-            if (!this.routeHandlers.put) break;
-            routeHandler = this.routeHandlers.put;
-            break;
-          case "PATCH":
-            if (!this.routeHandlers.patch) break;
-            routeHandler = this.routeHandlers.patch;
-            break;
-          case "DELETE":
-            if (!this.routeHandlers.delete) break;
-            routeHandler = this.routeHandlers.delete;
-            break;
-        }
-
-        if (!routeHandler || !routeHandler.handler)
-          throw new ApiError(405, `${req.method} method not allowed`);
-
-        const fields: { [key: PropertyKey]: any } = {};
-        for (const middleware of [
-          ...routeHandler.middleware,
-          ...this.gloablMiddleware,
-        ]) {
-          const middlewareFields = await middleware(req, res);
-
-          if (res.writableEnded) break;
-          if (typeof middlewareFields !== "object") continue;
-          Object.entries(middlewareFields).forEach(([key, value]) => {
-            fields[key] = value;
-          });
-        }
-        if (res.writableEnded) return;
-        const resp = await routeHandler.handler(req, fields);
-        return res.status(200).json(resp);
-      } catch (err) {
-        return this.errorHandler(res, err);
-      }
-    };
-  }
-}
-
-class MiddlewareRouter<Ms extends RouterMiddleware<any, any>[]> {
-  private setHandler: SetHandlerObject;
-  private _middleware: Ms;
-
-  constructor(setHandler: SetHandlerObject, middleware: Ms) {
-    this.setHandler = setHandler;
-    this._middleware = middleware;
-  }
-
-  private createRoute =
-    (method: Methods) =>
-    <Res extends Record<PropertyKey, any>>(
-      handler: HandlerWrapperWithMiddleware<Ms, Res>
-    ) => {
-      this.setHandler(method, {
         middleware: this._middleware,
-        handler,
+        bodyResolver: this._bodyResolver,
+        queryResolver: this._queryResolver,
       });
-      return;
+
+      return {} as TRes;
     };
+  };
 
   public get = this.createRoute("get");
   public post = this.createRoute("post");
   public delete = this.createRoute("delete");
   public put = this.createRoute("put");
   public patch = this.createRoute("patch");
-
-  // public middleware = <PrivMs extends RouterMiddleware<any, any>[]>(
-  //   middleware: PrivMs
-  // ) => {
-  //   return new MiddlewareRouter<Ms | PrivMs>(this.setHandler, middleware);
-  // };
 }
