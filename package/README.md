@@ -46,7 +46,7 @@ router.get(({ res }) => {
     // create some resource
     res.status(201);
     return { ... }
-}
+})
 ```
 
 ### Defining response type
@@ -78,6 +78,8 @@ router.get((req) => {
 
 Middleware in Next tAPI is similar to [Express](https://expressjs.com/en/guide/using-middleware.html) but **typed** variables are accessible in subsequent middleware and method handlers in the `fields` object.
 
+Note that Next tAPI middleware does not a replacement for [Next.js middleware](https://nextjs.org/docs/advanced-features/middleware). Next tAPI middleware is especially useful when typed variables want to be passed to a method handler.
+
 ```ts
 router
   .middleware(async ({ req, res, next }) => {
@@ -92,7 +94,7 @@ router
   })
   .get(({ fields }) => {
     fields.session; // fully typed
-    return {};
+    return { ... };
   });
 ```
 
@@ -114,7 +116,7 @@ Reusable middleware can be created with the `createMiddleware` function.
 ```ts
 export const authMiddleware = createMiddleware(asyncc ({ req, res, next }) => {
   const session = await getSession(req, res);
-  if (!session) throw new TapiError({ status: 403, "Not allowed!");
+  if (!session) throw new TapiError({ status: 403, "Not allowed!" });
 
   return next({
     session
@@ -169,17 +171,12 @@ Reusable query and body resolvers can be created with the `createQueryResolver` 
 
 ### Enforcing response types
 
-Responses returned by method handlers can be forced to extends a certain shape. Let's say we wanted all responses extends the following interface:
+Responses returned by method handlers can be forced to extend a certain shape. Let's say we wanted all successful responses to extend the following interface:
 
 ```ts
 interface StandardSuccessResponse<T extends {}> {
   success: true;
   data: T;
-}
-
-interface StandardErrorResponse {
-  success: false;
-  error: {};
 }
 ```
 
@@ -190,7 +187,7 @@ const router = createRouter<StandardSuccessResponse<{}, StandardErrorResponse>>(
 
 router.get(() => {
     return {
-        user: { ... } // Error! Is not typeof StandardSuccessResponse<{}>
+        user: { ... } // error, does not extend StandardSuccessResponse<{}>
     }
 }
 ```
@@ -211,6 +208,11 @@ router.get<StandardResponse<{ name: string }>>(() => {
 A custom error handler can easily be added to handle custom errors or to change the error response.
 
 ```ts
+interface StandardErrorResponse {
+  success: false;
+  error: { message: string };
+}
+
 const myCustomErrorHandler: ErrorHandler<StandardErrorResponse> = (
   req,
   res,
@@ -258,4 +260,105 @@ export const authRouter = () => {
 
 ## Comparison
 
-## Coming soon!
+### Method handlers
+
+**Regular Next.js**
+
+Without an abstraction like Next tAPI, API routes get extremely repetitive.
+
+```ts
+const handler: NextApiHandler = (req, res) => {
+  switch (req.method) {
+    case "GET":
+      return handleGET(req, res);
+    case "POST":
+      return handlePOST(req, res);
+    default:
+      return res.status(405).json({
+        error: `${req.method} method not supported.`,
+      });
+  }
+};
+
+export default handler;
+```
+
+**Next tAPI**
+
+Forget the switch-case, or other unideal solutions. Define the methods you want to support and the [error handler](#custom-error-handler) will take care of the rest.
+
+```ts
+import { createRouter } from "next-tapi";
+const router = createRouter();
+
+router.get(() => {
+    return { ... }
+})
+
+router.post(() => {
+    return { ... }
+})
+
+export default router.export();
+```
+
+### Error handling
+
+**Regular Next.js**
+
+Sending errors (especially in a consistent way) is especially annoying in regular API routes.
+
+```ts
+const handler: NextApiHandler = async (req, res) => {
+  if (req.method !== "GET")
+    return res.status(405).json({
+      error: `${req.method} method not supported.`,
+    });
+
+  const session = await getSession(req, res);
+
+  if (!session)
+    return res.status(401).json({
+      error: `You must be authenticated.`,
+    });
+
+  if (!session.role === "ADMIN")
+    return res.status(403).json({
+      error: `You are not authorised to access this resource.`,
+    });
+
+  try {
+    const data = await db.query("some_table").where({
+      user_id: session.user.id,
+    });
+
+    if (!data)
+      return res.status(404).json({
+        error: "Resource not found",
+      });
+    return res.status(200).json({ data });
+  } catch (err) {
+    return res.status(500).json({
+      error: "Some DB error.",
+    });
+  }
+};
+```
+
+**Next tAPI**
+
+Simply throw errors in the handler body and consistently handle errors in the error handler. This is similar to [Express](https://expressjs.com/en/guide/error-handling.html).
+
+```ts
+router.middleware(authMiddleware).get(async ({ fields }) => {
+  const data = await db.query("some_table").where({
+    user_id: session.user.id,
+  });
+  if (!data) throw new TapiError({ status: 404, message: "Oh no!" });
+  return { data };
+});
+```
+
+## Coming soon
+
+- end-to-end type safety

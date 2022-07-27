@@ -2,6 +2,7 @@ import {
   StandardErrorResponse,
   StandardSuccessResponse,
 } from "lib/types/shared";
+import { NextApiHandler } from "next";
 import { createRouter, createQueryResolver, ErrorHandler } from "next-tapi";
 import { authMiddleware } from "server/middleware";
 import * as yup from "yup";
