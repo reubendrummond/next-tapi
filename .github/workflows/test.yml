@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - middleware-revamped
   pull_request:
     branches:
       - main
