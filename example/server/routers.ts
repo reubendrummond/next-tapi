@@ -1,11 +1,11 @@
 import { authMiddleware } from "server/middleware/auth";
-import { Router } from "next-tapi";
+import { createRouter } from "next-tapi";
+import { StandardSuccessResponse } from "lib/types/shared";
 
 export const mainRouter = () => {
-  return new Router();
+  return createRouter<StandardSuccessResponse<{}>>();
 };
 
 export const authRouter = () => {
-  const r = new Router();
-  return r.globalMiddleware([authMiddleware]);
+  return createRouter<StandardSuccessResponse<{}>>().middleware(authMiddleware);
 };

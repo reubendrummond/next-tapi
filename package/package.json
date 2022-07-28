@@ -1,6 +1,6 @@
 {
   "name": "next-tapi",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Next.js type-safe API wrapper.",
   "files": [
     "dist",
@@ -58,6 +58,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/reubendrummond/next-router"
+    "url": "https://github.com/reubendrummond/next-tapi"
   }
 }

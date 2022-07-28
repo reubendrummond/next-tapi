@@ -31,7 +31,7 @@ export type Handler<TRes, TMiddlewareFields, TBody, TQuery> = ({
   fields: TMiddlewareFields;
   body: TBody extends {} ? TBody : undefined;
   query: TQuery extends {} ? TQuery : undefined;
-}) => TRes;
+}) => TRes | Promise<TRes>;
 
 export type DispatchHandler = (options: DispatcherOptions) => void;
 
